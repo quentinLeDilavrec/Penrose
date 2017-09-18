@@ -138,7 +138,6 @@ let animation = object(self)
       '\027' -> raise Exit;
     |'\032' -> let a = List.flatten (List.map( fun x -> divide_once x) tri_state) in tri_state <- a;();
     | a -> draw_string ((utf8_char_to_comprensive_string a)^" ");
-      ()
 
   method start first_penrose_triangle   =
     begin
