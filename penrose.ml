@@ -9,6 +9,7 @@ let width = 1900;;
 let height = 1000;;
 
 let start_with_acute_triangle = true;;
+let iterations = 10
 
 
 (*---------------Tools----------------*)
@@ -18,14 +19,11 @@ type point = float * float;;
 type triangle = point * point * point;;
 type triangle_type = Acute | Obtuse;;
 type penrose_triangle = triangle * triangle_type;;
-type penrose_triangle_old = {
-  points:triangle;
-  ttype:triangle_type
-}
 
 
 (* Golden ratio *)
 let phi = (1.+.(sqrt 5.))/. 2.;;
+
 
 let set_random_color() =
   let r = Random.int 255 
@@ -92,6 +90,12 @@ let rec divide generation (t : penrose_triangle) =
 
 
 
+(* Close any possible open window *)
+close_graph();;
+
+(* Create a new window *)
+open_graph (" "^(string_of_int width)^"x"^(string_of_int height)^"+0-0");;
+
 (* Initialize random number generator *)
 Random.self_init;;
 
@@ -106,7 +110,7 @@ and height_base_x_ratio =
 let apex = (height_base_x_ratio*.dist , dist/.2.) in
 let starting_acute_triangle = (apex, s2, s1) in
 
-divide 10 (starting_acute_triangle,
+divide iterations (starting_acute_triangle,
            if start_with_acute_triangle then Acute else Obtuse);;
 
 (*Keep the graph open*)

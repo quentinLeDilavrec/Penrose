@@ -17,10 +17,7 @@ let start_with_acute_triangle = true;;
 type point = float * float;;
 type triangle = point * point * point;;
 type triangle_type = Acute | Obtuse;;
-type penrose_triangle = {
-  points:triangle;
-  ttype:triangle_type
-}
+type penrose_triangle = triangle * triangle_type;;
 
 
 (* Golden ratio *)
@@ -55,9 +52,9 @@ let draw_triangle points =
   let (a,b,c)= integer_triangle points in
   fill_poly [|a;b;c|];;
 
-let divide_once {points=(apex,s1,s2);ttype=tri_type}=
-  match tri_type with
-  |Obtuse ->
+let divide_once (t : penrose_triangle) =
+  match t with
+  |((apex,s1,s2),Obtuse) ->
     let btw = split_line s2 s1 in
     let a = (s1, apex, btw) 
     and o = (btw, apex, s2) in
@@ -66,9 +63,9 @@ let divide_once {points=(apex,s1,s2);ttype=tri_type}=
       draw_triangle a;
       set_random_color();
       draw_triangle o;
-      [{points=a;ttype=Acute};{points=o;ttype=Obtuse}]
+      [(a,Acute);(o,Obtuse)]
     end;
-  |Acute ->
+  |((apex,s1,s2),_) ->
     let btw = split_line s1 apex
     and o_h = split_line apex s2 in
     let a1 = (s2, btw, s1) 
@@ -81,9 +78,9 @@ let divide_once {points=(apex,s1,s2);ttype=tri_type}=
       draw_triangle a2;
       set_random_color();
       draw_triangle o;
-      [{points=a1;ttype=Acute};
-       {points=a2;ttype=Acute};
-       {points= o;ttype=Obtuse}]
+      [(a1,Acute);
+       (a2,Acute);
+       (o,Obtuse)]
     end;;
 
 
@@ -97,21 +94,22 @@ let animation = object(self)
     match x.key with
     | '\027' -> raise Exit;
     | ' '    -> tri_state <- tri_state
-                            |> List.map divide_once
-                            |> List.flatten;
+                             |> List.map divide_once
+                             |> List.flatten;
     | other  -> draw_string ((Char.escaped other)^" ")
 
   method start first_penrose_triangle =
-      set_random_color();
-      draw_triangle first_penrose_triangle.points;
-      tri_state <- [first_penrose_triangle];
-      (loop_at_exit [Key_pressed] self#handler);
+    set_random_color();
+    let (triangle,_) = first_penrose_triangle in 
+    draw_triangle triangle;
+    tri_state <- [first_penrose_triangle];
+    (loop_at_exit [Key_pressed] self#handler);
 
   method restart first_penrose_triangle =
-      set_random_color();
-      draw_triangle first_penrose_triangle.points;
-      clear_graph(); 
-      tri_state <- [first_penrose_triangle];
+    set_random_color();
+    let (triangle,_) = first_penrose_triangle in 
+    draw_triangle triangle;
+    tri_state <- [first_penrose_triangle];
 
 end;;
 
@@ -137,8 +135,9 @@ and height_base_x_ratio =
   else sqrt (   1.   -. 0.25*.phi**2.) in
 let apex = (height_base_x_ratio*.dist , dist/.2.) in
 let starting_acute_triangle = (apex, s2, s1) in
+let starting_triangle_type = if start_with_acute_triangle then Acute else Obtuse in
 
-animation#start {points= starting_acute_triangle;
-                 ttype = if start_with_acute_triangle then Acute else Obtuse};;
+animation#start (starting_acute_triangle,
+                 starting_triangle_type);;
 
 (*ignore (Graphics.read_key ());;*)
