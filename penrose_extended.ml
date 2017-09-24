@@ -1,4 +1,4 @@
-#load "graphics.cma";; 
+#load "graphics.cma";;
 open Graphics;;
 
 
@@ -26,14 +26,14 @@ let width = (* Make sure the triangle fits in the window space *)
 
 (* Set the frawing color to a random one *)
 let set_random_color() =
-  let r = Random.int 255 
+  let r = Random.int 255
   and g = Random.int 255
   and b = Random.int 255
-  in set_color (rgb r g b);; 
+  in set_color (rgb r g b);;
 
 (* distance : point*point -> float
               a   ,   b   -> distance between a and b  *)
-let distance ((ax,ay):point) ((bx,by):point) = 
+let distance ((ax,ay):point) ((bx,by):point) =
   sqrt((ax -. bx)**2. +. (ay -. by)**2.);;
 
 (* Return the point on ab at |ab|/phi from a *)
@@ -66,7 +66,7 @@ let divide_once (t : penrose_triangle) =
   match t with
   |((apex,s1,s2),Obtuse) ->
     let btw = split_line s2 s1 in
-    let a = (s1, apex, btw) 
+    let a = (s1, apex, btw)
     and o = (btw, apex, s2) in
     begin
       set_random_color();
@@ -78,8 +78,8 @@ let divide_once (t : penrose_triangle) =
   |((apex,s1,s2),_) ->
     let btw = split_line s1 apex
     and o_h = split_line apex s2 in
-    let a1 = (s2, btw, s1) 
-    and a2 = (s2, btw, o_h) 
+    let a1 = (s2, btw, s1)
+    and a2 = (s2, btw, o_h)
     and o  = (o_h, btw, apex) in
     begin
       set_random_color();
@@ -112,7 +112,7 @@ let animation = object(self)
   (* Initialise tri_state *)
   method start first_penrose_triangle =
     set_random_color();
-    let (triangle,_) = first_penrose_triangle in 
+    let (triangle,_) = first_penrose_triangle in
     draw_triangle triangle;
     tri_state <- [first_penrose_triangle];
     (loop_at_exit [Key_pressed] self#handler);
@@ -120,7 +120,7 @@ let animation = object(self)
   (* Reinitialise tri_state *)
   method restart first_penrose_triangle =
     set_random_color();
-    let (triangle,_) = first_penrose_triangle in 
+    let (triangle,_) = first_penrose_triangle in
     draw_triangle triangle;
     tri_state <- [first_penrose_triangle];
 
@@ -142,7 +142,7 @@ Random.self_init;;
 let s1 = (0.,0.)
 and s2 = (0.,float_of_int height) in
 let dist = (distance s1 s2) in
-let height = 
+let height =
   if start_with_acute_triangle
   then sqrt ((phi**2. -. 0.25) *.dist)
   else sqrt ((   1.   -. 0.25*.phi**2.)) *.dist/.phi in
@@ -151,4 +151,3 @@ let starting_acute_triangle = (apex, s2, s1) in
 let starting_triangle_type = if start_with_acute_triangle then Acute else Obtuse in
 
 animation#start (starting_acute_triangle, starting_triangle_type);;
-
