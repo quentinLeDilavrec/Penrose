@@ -1,4 +1,4 @@
-#load "graphics.cma";; 
+#load "graphics.cma";;
 open Graphics;;
 
 
@@ -14,11 +14,11 @@ type penrose_triangle = triangle * triangle_type;;
 let phi = (1.+.(sqrt 5.))/. 2.;;
 
 (* Generation parameters *)
-let start_with_acute_triangle = false;;
-let iterations = 10;;
+let start_with_acute_triangle = true;;
+let iterations = 6;;
 
 (* Window parameters *)
-let height = 600;;
+let height = 800;;
 let width = (* Make sure the triangle fits in the window space *)
   if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
   else height;;
@@ -27,10 +27,10 @@ let width = (* Make sure the triangle fits in the window space *)
 
 (* Set the frawing color to a random one *)
 let set_random_color() =
-  let r = Random.int 255 
+  let r = Random.int 255
   and g = Random.int 255
   and b = Random.int 255
-  in set_color (rgb r g b);; 
+  in set_color (rgb r g b);;
 
 (* distance : point*point -> float
               a   ,   b   -> distance between a and b  *)
@@ -67,13 +67,13 @@ let draw_triangle points =
 *)
 let rec divide generation (t : penrose_triangle) =
   match t with
-  |(triangle,_) when generation=0 -> 
+  |(triangle,_) when generation=0 ->
     set_random_color();
     draw_triangle triangle ;
 
   |((apex,s1,s2),Obtuse) ->
     let btw = split_line s2 s1 in
-    let a = (s1, apex, btw) 
+    let a = (s1, apex, btw)
     and o = (btw, apex, s2) in
     begin
       divide (generation-1) (a,Acute);
@@ -83,8 +83,8 @@ let rec divide generation (t : penrose_triangle) =
   |((apex,s1,s2),_) ->
     let btw = split_line s1 apex
     and o_h = split_line apex s2 in
-    let a1 = (s2, btw, s1) 
-    and a2 = (s2, btw, o_h) 
+    let a1 = (s2, btw, s1)
+    and a2 = (s2, btw, o_h)
     and o  = (o_h, btw, apex) in
     begin
       divide (generation-1) (a1,Acute);
@@ -108,7 +108,7 @@ Random.self_init;;
 let s1 = (0.,0.)
 and s2 = (0.,float_of_int height) in
 let dist = (distance s1 s2) in
-let height = 
+let height =
   if start_with_acute_triangle
   then (sqrt (phi**2. -. 0.25)) *. dist
   else (sqrt (   1.   -. 0.25*.phi**2.)) *. (dist /. phi) in
@@ -120,4 +120,3 @@ divide iterations (starting_triangle,
 
 (* Keep the graph open until a key is pressed *)
 ignore (Graphics.read_key ());;
-

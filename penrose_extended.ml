@@ -17,7 +17,7 @@ let phi = (1.+.(sqrt 5.))/. 2.;;
 let start_with_acute_triangle = true;;
 
 (* Window parameters *)
-let height = 600;;
+let height = 800;;
 let width = (* Make sure the triangle fits in the window space *)
   if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
   else height;;
