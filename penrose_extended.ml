@@ -2,16 +2,7 @@
 open Graphics;;
 
 
-(*------Parameters---------*)
-
-(* Window parameters *)
-let width = 1900;;
-let height = 1000;;
-
-let start_with_acute_triangle = false;;
-
-
-(*---------------Tools----------------*)
+(*------Types, Constants and Parameters---------*)
 
 (* Custom types *)
 type point = float * float;;
@@ -19,10 +10,21 @@ type triangle = point * point * point;;
 type triangle_type = Acute | Obtuse;;
 type penrose_triangle = triangle * triangle_type;;
 
-
 (* Golden ratio *)
 let phi = (1.+.(sqrt 5.))/. 2.;;
 
+(* Generation parameters *)
+let start_with_acute_triangle = true;;
+
+(* Window parameters *)
+let height = 600;;
+let width = (* Make sure the triangle fits in the window space *)
+  if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
+  else height;;
+
+(*---------------Utilities----------------*)
+
+(* Set the frawing color to a random one *)
 let set_random_color() =
   let r = Random.int 255 
   and g = Random.int 255
@@ -34,7 +36,7 @@ let set_random_color() =
 let distance ((ax,ay):point) ((bx,by):point) = 
   sqrt((ax -. bx)**2. +. (ay -. by)**2.);;
 
-
+(* Return the point on ab at |ab|/phi from a *)
 let split_line ((p1x,p1y):point) ((p2x,p2y):point) : point =
   let dist = distance (p1x,p1y) (p2x,p2y) in
   let k2   = dist /. phi in
@@ -43,15 +45,23 @@ let split_line ((p1x,p1y):point) ((p2x,p2y):point) : point =
   (*         x                 ,           y             *)
   ((k1*.p2x +. k2*.p1x)/. sum , (k1*.p2y +. k2*.p1y)/. sum);;
 
+(* Convert the given triangle to a triangle with integer coordinates *)
 let integer_triangle (t : triangle) =
   let apply_to_pair f (x, y) = (f x, f y)
   and apply_to_triple f (x, y, z) = (f x, f y, f z) in
   apply_to_triple (apply_to_pair int_of_float) t;;
 
+(* Draw a triangle on screen *)
 let draw_triangle points =
   let (a,b,c)= integer_triangle points in
   fill_poly [|a;b;c|];;
 
+(*------------Triangle division algorithm------------------------------------------------
+  Apply one step of the recursive subdivision process which generates a Penrose tiling.
+  Precondition:
+    t: - apex is always the first point
+       - points aren't aligned
+*)
 let divide_once (t : penrose_triangle) =
   match t with
   |((apex,s1,s2),Obtuse) ->
@@ -84,8 +94,8 @@ let divide_once (t : penrose_triangle) =
     end;;
 
 
-(*-------------------The animation-----------------------
-  it manage the animation, the inputs and the only mutable state *)
+(*------------------Animation management-----------------------
+  Manages the animation, the inputs and the only mutable state *)
 let animation = object(self)
 
   val mutable tri_state : penrose_triangle list = []
@@ -114,7 +124,7 @@ let animation = object(self)
 end;;
 
 
-(*-------------main--------------------------------*)     
+(*-------------Main program--------------------------------*)     
 
 (* Close any possible open window *)
 close_graph();;
@@ -137,7 +147,5 @@ let apex = (height , dist/.2.) in
 let starting_acute_triangle = (apex, s2, s1) in
 let starting_triangle_type = if start_with_acute_triangle then Acute else Obtuse in
 
-animation#start (starting_acute_triangle,
-                 starting_triangle_type);;
+animation#start (starting_acute_triangle, starting_triangle_type);;
 
-(*ignore (Graphics.read_key ());;*)
