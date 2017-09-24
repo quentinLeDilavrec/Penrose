@@ -100,14 +100,16 @@ let animation = object(self)
 
   val mutable tri_state : penrose_triangle list = []
 
+  (* Handle the keybord inputs*)
   method private handler x =
     match x.key with
     | '\027' -> raise Exit;
     | ' '    -> tri_state <- tri_state
                              |> List.map divide_once
-                             |> List.flatten;
+                             |> List.concat;
     | other  -> draw_string ((Char.escaped other)^" ")
 
+  (* Initialise tri_state *)
   method start first_penrose_triangle =
     set_random_color();
     let (triangle,_) = first_penrose_triangle in 
@@ -115,6 +117,7 @@ let animation = object(self)
     tri_state <- [first_penrose_triangle];
     (loop_at_exit [Key_pressed] self#handler);
 
+  (* Reinitialise tri_state *)
   method restart first_penrose_triangle =
     set_random_color();
     let (triangle,_) = first_penrose_triangle in 
