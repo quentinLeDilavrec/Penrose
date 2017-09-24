@@ -2,17 +2,7 @@
 open Graphics;;
 
 
-(*------Parameters---------*)
-
-(* Window parameters *)
-let width = 1900;;
-let height = 1000;;
-
-let start_with_acute_triangle = true;;
-let iterations = 10
-
-
-(*---------------Tools----------------*)
+(*------Types, Constants and Parameters---------*)
 
 (* Custom types *)
 type point = float * float;;
@@ -20,11 +10,22 @@ type triangle = point * point * point;;
 type triangle_type = Acute | Obtuse;;
 type penrose_triangle = triangle * triangle_type;;
 
-
 (* Golden ratio *)
 let phi = (1.+.(sqrt 5.))/. 2.;;
 
+(* Generation parameters *)
+let start_with_acute_triangle = false;;
+let iterations = 1;;
 
+(* Window parameters *)
+let height = 600;;
+let width = (* Make sure the triangle fits in the window space *)
+  if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
+  else height;;
+
+(*---------------Utilities----------------*)
+
+(* Set the frawing color to a random one *)
 let set_random_color() =
   let r = Random.int 255 
   and g = Random.int 255
@@ -33,10 +34,12 @@ let set_random_color() =
 
 (* distance : point*point -> float
               a   ,   b   -> distance between a and b  *)
-let distance ((ax,ay):point) ((bx,by):point) = 
-  sqrt((ax -. bx)**2. +. (ay -. by)**2.);;
+let distance ((ax,ay):point) ((bx,by):point) =
+  let x = ax -. bx
+  and y = ay -. by in
+  sqrt (x *. x +. y *. y);;
 
-(* return the point on ab at |ab|/phi from a *)
+(* Return the point on ab at |ab|/phi from a *)
 let split_line ((ax,ay):point) ((bx,by):point) : point =
   let dist = distance (ax,ay) (bx,by) in
   let k2   = dist /. phi in
@@ -45,25 +48,27 @@ let split_line ((ax,ay):point) ((bx,by):point) : point =
   (*         x                 ,           y             *)
   ((k1*.bx +. k2*.ax)/. sum , (k1*.by +. k2*.ay)/. sum);;
 
+(* Convert the given triangle to a triangle with integer coordinates *)
 let integer_triangle (t : triangle) =
   let apply_to_pair f (x, y) = (f x, f y)
   and apply_to_triple f (x, y, z) = (f x, f y, f z) in
   apply_to_triple (apply_to_pair int_of_float) t;;
 
+(* Draw a triangle on screen *)
 let draw_triangle points =
   let (a,b,c)= integer_triangle points in
   fill_poly [|a;b;c|];;
 
 
 
-(*------------Triangle divider algorithme for penrose paving------------
-  pre-cond:
-    p: - apex is always the first point
+(*------------Triangle divider algorithm------------
+  Precondition:
+    t: - apex is always the first point
        - points aren't aligned
 *)
 let rec divide generation (t : penrose_triangle) =
   match t with
-  |(triangle,_) when generation<=0 -> 
+  |(triangle,_) when generation=0 -> 
     set_random_color();
     draw_triangle triangle ;
 
@@ -89,6 +94,7 @@ let rec divide generation (t : penrose_triangle) =
     end;;
 
 
+(*----------------Main program----------------*)
 
 (* Close any possible open window *)
 close_graph();;
@@ -99,7 +105,7 @@ open_graph (" "^(string_of_int width)^"x"^(string_of_int height)^"+0-0");;
 (* Initialize random number generator *)
 Random.self_init;;
 
-(* Setup the first triangle to call it with divide *)
+(* Setup the starting triangle for the first iteration *)
 let s1 = (0.,0.)
 and s2 = (0.,float_of_int height) in
 let dist = (distance s1 s2)
@@ -108,10 +114,11 @@ and height_base_x_ratio =
   then sqrt (phi**2. -. 0.25)
   else sqrt (   1.   -. 0.25*.phi**2.) in
 let apex = (height_base_x_ratio*.dist , dist/.2.) in
-let starting_acute_triangle = (apex, s2, s1) in
+let starting_triangle = (apex, s2, s1) in
 
-divide iterations (starting_acute_triangle,
+divide iterations (starting_triangle,
            if start_with_acute_triangle then Acute else Obtuse);;
 
-(*Keep the graph open*)
+(* Keep the graph open until a key is pressed *)
 ignore (Graphics.read_key ());;
+
