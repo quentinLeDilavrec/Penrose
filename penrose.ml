@@ -1,8 +1,8 @@
 #load "graphics.cma";;
 open Graphics;;
 
-
 (*------Types, Constants and Parameters---------*)
+
 
 (* Custom types *)
 type point = float * float;;
