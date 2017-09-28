@@ -144,9 +144,9 @@ and s2 = (0.,float_of_int height) in
 let dist = (distance s1 s2) in
 let height =
   if start_with_acute_triangle
-  then sqrt ((phi**2. -. 0.25) *.dist)
-  else sqrt ((   1.   -. 0.25*.phi**2.)) *.dist/.phi in
-let apex = (height , dist/.2.) in
+  then (sqrt (phi**2. -. 0.25)) *. dist
+  else (sqrt (   1.   -. 0.25*.phi**2.)) *. (dist /. phi) in
+let apex = (height, dist/.2.) in
 let starting_acute_triangle = (apex, s2, s1) in
 let starting_triangle_type = if start_with_acute_triangle then Acute else Obtuse in
 
