@@ -1,27 +1,6 @@
 #load "graphics.cma";;
 open Graphics;;
 
-(*------Types, Constants and Parameters---------*)
-
-
-(* Custom types *)
-type point = float * float;;
-type triangle = point * point * point;;
-type triangle_type = Acute | Obtuse;;
-type penrose_triangle = triangle * triangle_type;;
-
-(* Golden ratio *)
-let phi = (1.+.(sqrt 5.))/. 2.;;
-
-(* Generation parameters *)
-let start_with_acute_triangle = true;;
-let iterations = 6;;
-
-(* Window parameters *)
-let height = 800;;
-let width = (* Make sure the triangle fits in the window space *)
-  if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
-  else height;;
 
 (*---------------Utilities----------------*)
 
@@ -32,32 +11,61 @@ let set_random_color() =
   and b = Random.int 255
   in set_color (rgb r g b);;
 
-(* distance : point*point -> float
-              a   ,   b   -> distance between a and b  *)
-let distance ((ax,ay):point) ((bx,by):point) =
+
+
+(*------Types, Constants and Parameters---------*)
+(* Golden ratio *)
+let phi = (1.+.(sqrt 5.))/. 2.;;
+
+(* Custom types *)
+type point = Point of float * float;;
+type triangle_iso = {apex:point;s1:point;s2:point};;
+type penrose_triangle = Acute of triangle_iso | Obtuse of triangle_iso;;
+
+(* Calcul la distance entre 2 points *)
+let distance (Point(ax,ay)) (Point(bx,by)) =
   let x = ax -. bx
   and y = ay -. by in
   sqrt (x *. x +. y *. y);;
 
-(* Return the point on ab at |ab|/phi from a *)
-let split_line ((ax,ay):point) ((bx,by):point) : point =
-  let dist = distance (ax,ay) (bx,by) in
-  let k2   = dist /. phi in
-  let k1   = dist -. k2 in
+(* Return the barycenter of ab weighted by k1 and k2 *)
+let barycenter (Point(ax,ay),k1) (Point(bx,by),k2) =
   let sum  = k1 +. k2 in
-  (*         x                 ,           y             *)
-  ((k1*.bx +. k2*.ax)/. sum , (k1*.by +. k2*.ay)/. sum);;
+  (*         x              ,           y             *)
+  Point((k1*.ax +. k2*.bx)/. sum , (k1*.ay +. k2*.by)/. sum);;
 
-(* Convert the given triangle to a triangle with integer coordinates *)
-let integer_triangle (t : triangle) =
-  let apply_to_pair f (x, y) = (f x, f y)
-  and apply_to_triple f (x, y, z) = (f x, f y, f z) in
-  apply_to_triple (apply_to_pair int_of_float) t;;
+(* Return the point on ab at |ab|/phi from a *)
+let split_line a b =
+  let dist = distance a b in
+  let k1   = dist /. phi in
+  let k2   = dist -. k1 in
+  barycenter (a,k1) (b,k2);;
 
 (* Draw a triangle on screen *)
-let draw_triangle points =
-  let (a,b,c)= integer_triangle points in
-  fill_poly [|a;b;c|];;
+let draw_triangle t =
+  let f (Point(x,y)) = (int_of_float x,int_of_float y) in
+  fill_poly [|f t.apex;f t.s1;f t.s2|];;
+
+let is_obtuse t =
+  match t with
+  | Obtuse _ -> true
+  | _ -> false;;
+
+let get_triangle penrose_t =
+  match penrose_t with
+  | Obtuse t| Acute t -> t;;
+
+(*****************************************************)
+(* Generation parameters *)
+let start_with_acute_triangle = true;;
+let iterations = 6;;
+
+(* Window parameters *)
+let height = 800;;
+let width = (* Make sure the triangle fits in the window space *)
+  if start_with_acute_triangle then int_of_float ((float_of_int height) *. phi)
+  else height;;
+
 
 
 (*------------Recursive triangle division algorithm------------
@@ -65,31 +73,31 @@ let draw_triangle points =
     t: - apex is always the first point
        - points aren't aligned
 *)
-let rec divide generation (t : penrose_triangle) =
-  match t with
-  |(triangle,_) when generation=0 ->
+let rec divide generation (penrose_t : penrose_triangle) =
+  let t = get_triangle penrose_t in
+  if generation = 0
+  then begin
     set_random_color();
-    draw_triangle triangle ;
-
-  |((apex,s1,s2),Obtuse) ->
-    let btw = split_line s2 s1 in
-    let a = (s1, apex, btw)
-    and o = (btw, apex, s2) in
+    draw_triangle t;
+  end
+  else if is_obtuse penrose_t then
+    let btw = split_line t.s2 t.s1 in
+    let a = {apex=t.s1; s1=t.apex; s2=btw}
+    and o = {apex=btw; s1=t.apex; s2=t.s2} in
     begin
-      divide (generation-1) (a,Acute);
-      divide (generation-1) (o,Obtuse);
+      divide (generation-1) (Acute a);
+      divide (generation-1) (Obtuse o);
     end
-
-  |((apex,s1,s2),_) ->
-    let btw = split_line s1 apex
-    and o_h = split_line apex s2 in
-    let a1 = (s2, btw, s1)
-    and a2 = (s2, btw, o_h)
-    and o  = (o_h, btw, apex) in
+  else
+    let btw = split_line t.s1 t.apex
+    and o_h = split_line t.apex t.s2 in
+    let a1 = {apex=t.s2; s1=btw; s2=t.s1}
+    and a2 = {apex=t.s2; s1=btw; s2=o_h}
+    and o  = {apex=o_h; s1=btw; s2=t.apex} in
     begin
-      divide (generation-1) (a1,Acute);
-      divide (generation-1) (a2,Acute);
-      divide (generation-1) (o,Obtuse);
+      divide (generation-1) (Acute a1);
+      divide (generation-1) (Acute a2);
+      divide (generation-1) (Obtuse o);
     end;;
 
 
@@ -105,18 +113,19 @@ open_graph (" "^(string_of_int width)^"x"^(string_of_int height)^"+0-0");;
 Random.self_init;;
 
 (* Setup the starting triangle for the first iteration *)
-let s1 = (0.,0.)
-and s2 = (0.,float_of_int height) in
-let dist = (distance s1 s2) in
+let s1 = Point (0.,0.)
+and s2 = Point(0.,float_of_int height) in
+let dist = distance s1 s2 in
 let height =
   if start_with_acute_triangle
   then (sqrt (phi**2. -. 0.25)) *. dist
   else (sqrt (   1.   -. 0.25*.phi**2.)) *. (dist /. phi) in
-let apex = (height, dist/.2.) in
-let starting_triangle = (apex, s2, s1) in
+let apex = Point (height, dist/.2.) in
+let starting_triangle = {apex=apex; s1=s1; s2=s2} in
 
-divide iterations (starting_triangle,
-           if start_with_acute_triangle then Acute else Obtuse);;
+divide iterations (if start_with_acute_triangle 
+                   then Acute starting_triangle 
+                   else Obtuse starting_triangle);;
 
 (* Keep the graph open until a key is pressed *)
 ignore (Graphics.read_key ());;

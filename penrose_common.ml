@@ -1,4 +1,4 @@
-#load "graphics.cma";;
+#use "graphics.cma";;
 open Graphics;;
 
 
@@ -6,46 +6,50 @@ open Graphics;;
 let phi = (1.+.(sqrt 5.))/. 2.;;
 
 (* Custom types *)
-type point = float * float;;
-type triangle = point * point * point;;
-type triangle_type = Acute | Obtuse;;
-type penrose_triangle = triangle * triangle_type;;
+type point = Point of float * float;;
+type triangle_iso = {apex:point;s1:point;s2:point};;
+type penrose_triangle = Acute of triangle_iso | Obtuse of triangle_iso;;
 
 (* Calcul la distance entre 2 points *)
-let distance ((ax,ay):point) ((bx,by):point) =
+let distance (Point(ax,ay)) (Point(bx,by)) =
   let x = ax -. bx
   and y = ay -. by in
   sqrt (x *. x +. y *. y);;
 
-(* Return the point on ab at |ab|/phi from a *)
-let split_line ((ax,ay):point) ((bx,by):point) : point =
-  let dist = distance (ax,ay) (bx,by) in
-  let k2   = dist /. phi in
-  let k1   = dist -. k2 in
+(* Return the barycenter of ab weighted by k1 and k2 *)
+let barycenter (Point(ax,ay),k1) (Point(bx,by),k2) =
   let sum  = k1 +. k2 in
-  (*         x                 ,           y             *)
-  ((k1*.bx +. k2*.ax)/. sum , (k1*.by +. k2*.ay)/. sum);;
+  (*         x              ,           y             *)
+  Point((k1*.ax +. k2*.bx)/. sum , (k1*.ay +. k2*.by)/. sum);;
 
-
-(* Convert the given triangle to a triangle with integer coordinates *)
-let integer_triangle (t : triangle) =
-  let apply_to_pair f (x, y) = (f x, f y)
-  and apply_to_triple f (x, y, z) = (f x, f y, f z) in
-  apply_to_triple (apply_to_pair int_of_float) t;;
-
-(* Draw a triangle on screen *)
-let draw_triangle points =
-  let (a,b,c)= integer_triangle points in
-  fill_poly [|a;b;c|];;
-
-
-(* Convert the given triangle to a triangle with integer coordinates *)
-let integer_triangle (t : triangle) =
-  let apply_to_pair f (x, y) = (f x, f y)
-  and apply_to_triple f (x, y, z) = (f x, f y, f z) in
-  apply_to_triple (apply_to_pair int_of_float) t;;
+(* Return the point on ab at |ab|/phi from a *)
+let split_line a b =
+  let dist = distance a b in
+  let k1   = dist /. phi in
+  let k2   = dist -. k1 in
+  barycenter (a,k1) (b,k2)
 
 (* Draw a triangle on screen *)
-let draw_triangle points =
-  let (a,b,c)= integer_triangle points in
-  fill_poly [|a;b;c|];;
+let draw_triangle penrose_t =
+  let f (Point(x,y)) = (int_of_float x,int_of_float y) in
+  match penrose_t with
+  | Acute t | Obtuse t ->
+    fill_poly [|f t.apex;f t.s1;f t.s2|];;
+
+
+class ['a] animation handler = object(self)
+
+  val state = ((ref []):'a list ref)
+
+  (* Handle the keybord inputs*)
+  method private handler = handler
+  (* Initialise tri_state *)
+  method start first =
+    state := [first];
+    (loop_at_exit [Key_pressed] self#handler);
+
+    (* Reinitialise tri_state *)
+  method restart first =
+    state := [first];
+
+end;;
